@@ -1,0 +1,6 @@
+CodigoAnimal,NomeComum,NomeCientifico,Especie,Idade,CodigoHabitat,CodigoTratador
+AN01,Simba,Panthera leo,Leao,5,H01,T01
+AN02,Nala,Panthera leo,Leao,4,H01,T01
+AN03,Moto Moto,Hippopotamus amphibius,Hipopotamo,10,H02,T01
+AN04,Jaws,Carcharodon carcharias,Tubarao Branco,8,H03,T02
+AN05,Sly,Python regius,Piton Real,3,H04,T03
