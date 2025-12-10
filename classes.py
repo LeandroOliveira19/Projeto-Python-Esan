@@ -45,7 +45,7 @@ class Exposicao:
         self.nome = nome
         self.tema = tema
         self.horario = horario
-        self.local_id = local_id # Pode ser Area ou Habitat
+        self.local_id = local_id 
     def to_dict(self):
         return {"CodigoExposicao": self.cod, "Nome": self.nome, "Tema": self.tema, "Horario": self.horario, "LocalID": self.local_id}
 
@@ -53,11 +53,18 @@ class Loja:
     def __init__(self, cod, nome):
         self.cod = cod
         self.nome = nome
-        self.produtos = [] # Lista de dicionarios temporaria
     def to_dict(self):
         return {"CodigoLoja": self.cod, "Nome": self.nome}
 
-class Bilhete:
-    def __init__(self, tipo, preco):
-        self.tipo = tipo
+class Produto:
+    def __init__(self, cod, loja_id, nome, preco, quantidade):
+        self.cod = cod
+        self.loja_id = loja_id
+        self.nome = nome
         self.preco = preco
+        self.quantidade = quantidade
+    def to_dict(self):
+        return {
+            "CodigoProduto": self.cod, "CodigoLoja": self.loja_id, 
+            "Nome": self.nome, "Preco": self.preco, "Quantidade": self.quantidade
+        }

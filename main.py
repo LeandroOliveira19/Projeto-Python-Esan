@@ -7,14 +7,19 @@ from grafo import GrafoZoo
 class SistemaZoo:
     def __init__(self):
         self.gestor_db = GestorFicheiros()
+        # Listas de Dados
         self.areas = []
         self.habitats = []
         self.animais = []
         self.tratadores = []
         self.exposicoes = []
         self.lojas = []
+        self.produtos = [] # <--- NOVO: Lista de Produtos
+        self.reservas = [] 
+        
         self.grafo = GrafoZoo()
         self.receita_bilhetes = 0.0
+        
         self.carregar_dados()
 
     # --- 1. PERSISTÊNCIA DE DADOS ---
@@ -44,6 +49,14 @@ class SistemaZoo:
         for l in self.gestor_db.ler_csv("lojas.csv"):
             self.lojas.append(Loja(l["CodigoLoja"], l["Nome"]))
 
+        # Carregar Produtos (NOVO)
+        for l in self.gestor_db.ler_csv("produtos.csv"):
+            self.produtos.append(Produto(l["CodigoProduto"], l["CodigoLoja"], l["Nome"], float(l["Preco"]), int(l["Quantidade"])))
+
+        # Carregar Reservas
+        for l in self.gestor_db.ler_csv("reservas.csv"):
+            self.reservas.append(l)
+
         # Carregar Grafo
         for l in self.gestor_db.ler_csv("conexoes.csv"):
             self.grafo.adicionar_conexao(l["CodigoHabitatA"], l["CodigoHabitatB"], l["Distancia"])
@@ -56,6 +69,9 @@ class SistemaZoo:
         self.gestor_db.guardar_csv("animais.csv", ["CodigoAnimal", "NomeComum", "NomeCientifico", "Especie", "Idade", "CodigoHabitat", "CodigoTratador"], [x.to_dict() for x in self.animais])
         self.gestor_db.guardar_csv("exposicoes.csv", ["CodigoExposicao", "Nome", "Tema", "Horario", "LocalID"], [x.to_dict() for x in self.exposicoes])
         self.gestor_db.guardar_csv("lojas.csv", ["CodigoLoja", "Nome"], [x.to_dict() for x in self.lojas])
+        self.gestor_db.guardar_csv("produtos.csv", ["CodigoProduto", "CodigoLoja", "Nome", "Preco", "Quantidade"], [x.to_dict() for x in self.produtos])
+        self.gestor_db.guardar_csv("reservas.csv", ["CodigoReserva", "CodigoVisitante", "CodigoExposicao"], self.reservas)
+        
         print(">> Sucesso! Todos os ficheiros foram atualizados.\n")
 
     # --- 2. AUXILIARES E VALIDAÇÃO ---
@@ -81,7 +97,7 @@ class SistemaZoo:
     # --- 3. GESTÃO DE ÁREAS ---
     def menu_areas(self):
         print("\n--- GESTÃO DE ÁREAS ---")
-        print("1. Adicionar | 2. Listar | 3. Remover | 0. Voltar")
+        print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
         op = input("Opção: ")
         if op == "1":
             cod = self.ler_input("Código Área: ")
@@ -94,10 +110,22 @@ class SistemaZoo:
             print("Área criada!")
         elif op == "2":
             for a in self.areas: print(f"[{a.cod}] {a.nome} - {a.descricao}")
-        elif op == "3":
+        elif op == "3": # EDICAO NOVA
+            cod = input("Código a editar: ")
+            obj = self.encontrar_por_id(self.areas, cod)
+            if obj:
+                print(f"A editar '{obj.nome}' (Enter para manter)")
+                novo_n = input(f"Nome ({obj.nome}): ")
+                if novo_n.strip(): obj.nome = novo_n
+                novo_d = input(f"Descrição ({obj.descricao}): ")
+                if novo_d.strip(): obj.descricao = novo_d
+                print("Área atualizada.")
+            else: print("Não encontrada.")
+        elif op == "4":
             cod = input("Código a remover: ")
             obj = self.encontrar_por_id(self.areas, cod)
             if obj: 
+                # Opcional: Verificar se há habitats nesta área antes de remover
                 self.areas.remove(obj)
                 print("Área removida.")
             else: print("Área não encontrada.")
@@ -105,7 +133,7 @@ class SistemaZoo:
     # --- 4. GESTÃO DE HABITATS ---
     def menu_habitats(self):
         print("\n--- GESTÃO DE HABITATS ---")
-        print("1. Adicionar | 2. Listar | 3. Editar | 0. Voltar")
+        print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
         op = input("Opção: ")
         
         if op == "1":
@@ -113,12 +141,10 @@ class SistemaZoo:
             if self.encontrar_por_id(self.habitats, cod):
                 print("Erro: Código de Habitat já existe.")
                 return
-
             nome = self.ler_input("Nome: ")
             tipo = self.ler_input("Tipo (ex: Aquático): ")
             area = self.ler_input("Código da Área: ")
             
-            # Validação
             if not self.encontrar_por_id(self.areas, area):
                 print("ERRO: Essa área não existe! Crie a área primeiro.")
             else:
@@ -133,13 +159,10 @@ class SistemaZoo:
             h = self.encontrar_por_id(self.habitats, cod)
             if h:
                 print(f"A editar: {h.nome} (Pressione Enter para manter o atual)")
-                
                 novo_nome = input(f"Novo Nome ({h.nome}): ")
                 if novo_nome.strip(): h.nome = novo_nome
-                
                 novo_tipo = input(f"Novo Tipo ({h.tipo}): ")
                 if novo_tipo.strip(): h.tipo = novo_tipo
-
                 nova_area = input(f"Nova Área ({h.area_id}): ")
                 if nova_area.strip():
                     if self.encontrar_por_id(self.areas, nova_area):
@@ -147,17 +170,24 @@ class SistemaZoo:
                         print("Área atualizada.")
                     else:
                         print("ERRO: A área indicada não existe! A área manteve-se inalterada.")
-
                 print("Habitat editado com sucesso.")
             else:
                 print("Habitat não encontrado.")
 
-    # --- 5. GESTÃO DE ANIMAIS (COM VALIDAÇÃO FORTE) ---
+        elif op == "4":
+            cod = input("Código a remover: ")
+            h = self.encontrar_por_id(self.habitats, cod)
+            if h:
+                self.habitats.remove(h)
+                print("Habitat removido.")
+            else: print("Não encontrado.")
+
+    # --- 5. GESTÃO DE ANIMAIS ---
     def menu_animais(self):
         print("\n--- GESTÃO DE ANIMAIS ---")
         print("1. Registar Animal")
         print("2. Listar Todos")
-        print("3. Pesquisar (Nome/Espécie/Habitat)")
+        print("3. Pesquisar")
         print("4. Remover Animal")
         print("0. Voltar")
         op = input("Opção: ")
@@ -167,24 +197,19 @@ class SistemaZoo:
             if self.encontrar_por_id(self.animais, cod):
                 print("Erro: Já existe um animal com este código.")
                 return
-
             nome = self.ler_input("Nome Comum: ")
             cient = input("Nome Científico (opcional): ")
             esp = self.ler_input("Espécie: ")
             idade = self.ler_input("Idade: ", int)
             
-            # --- VALIDAÇÃO FORTE DE HABITAT ---
             hid = self.ler_input("Código Habitat: ")
             if not self.encontrar_por_id(self.habitats, hid):
                 print(f"ERRO CRÍTICO: O Habitat '{hid}' não existe!")
-                print("Operação cancelada. Nada foi registado.")
                 return 
 
-            # --- VALIDAÇÃO FORTE DE TRATADOR ---
             tid = self.ler_input("Código Tratador: ")
             if not self.encontrar_por_id(self.tratadores, tid):
                 print(f"ERRO CRÍTICO: O Tratador '{tid}' não existe!")
-                print("Operação cancelada. Nada foi registado.")
                 return 
             
             self.animais.append(Animal(cod, nome, cient, esp, idade, hid, tid))
@@ -209,51 +234,170 @@ class SistemaZoo:
                 print("Animal removido.")
             else: print("Não encontrado.")
 
-    # --- 6. GESTÃO DE TRATADORES E EVENTOS ---
+    # --- 6. GESTÃO DE STAFF E EVENTOS ---
     def menu_staff_eventos(self):
         print("\n--- STAFF E EVENTOS ---")
-        print("1. Gerir Tratadores (Adicionar/Listar)")
-        print("2. Gerir Exposições (Adicionar/Listar)")
+        print("1. Gerir Tratadores")
+        print("2. Gerir Exposições")
+        print("0. Voltar")
         op = input("Opção: ")
         
+        if op == "1": self.submenu_tratadores()
+        elif op == "2": self.submenu_exposicoes()
+
+    def submenu_tratadores(self):
+        print("\n-- TRATADORES --")
+        print("1. Novo | 2. Listar | 3. Editar | 4. Remover")
+        op = input("Opção: ")
         if op == "1":
-            sub = input("1. Novo Tratador | 2. Listar: ")
-            if sub == "1":
-                c = self.ler_input("Código: ")
-                if self.encontrar_por_id(self.tratadores, c):
-                    print("Erro: Código já existe.")
-                    return
-                n = self.ler_input("Nome: ")
-                e = self.ler_input("Especialidade: ")
-                self.tratadores.append(Tratador(c, n, e))
-                print("Tratador registado.")
-            elif sub == "2":
-                for t in self.tratadores: print(f"[{t.cod}] {t.nome} - {t.especialidade}")
-
+            c = self.ler_input("Código: ")
+            if self.encontrar_por_id(self.tratadores, c):
+                print("Erro: Código já existe.")
+                return
+            n = self.ler_input("Nome: ")
+            e = self.ler_input("Especialidade: ")
+            self.tratadores.append(Tratador(c, n, e))
+            print("Tratador registado.")
         elif op == "2":
-            sub = input("1. Nova Exposição | 2. Listar: ")
-            if sub == "1":
-                c = self.ler_input("Código Evento: ")
-                n = self.ler_input("Nome Evento: ")
-                t = self.ler_input("Tema: ")
-                h = self.ler_input("Horário (ex: 14:30): ")
-                l = self.ler_input("Local (ID Area/Habitat): ")
-                self.exposicoes.append(Exposicao(c, n, t, h, l))
-            elif sub == "2":
-                for e in self.exposicoes: print(f"{e.horario} - {e.nome} ({e.local_id})")
+            for t in self.tratadores: print(f"[{t.cod}] {t.nome} - {t.especialidade}")
+        elif op == "3":
+            c = input("Código a editar: ")
+            t = self.encontrar_por_id(self.tratadores, c)
+            if t:
+                t.nome = self.ler_input(f"Novo Nome ({t.nome}): ")
+                t.especialidade = self.ler_input(f"Nova Especialidade ({t.especialidade}): ")
+                print("Editado.")
+            else: print("Não encontrado.")
+        elif op == "4":
+            c = input("Código a remover: ")
+            t = self.encontrar_por_id(self.tratadores, c)
+            if t:
+                self.tratadores.remove(t)
+                print("Removido.")
+            else: print("Não encontrado.")
 
-    # --- 7. LOJAS E ESTATISTICAS ---
+    def submenu_exposicoes(self):
+        print("\n-- EXPOSIÇÕES --")
+        print("1. Nova | 2. Listar | 3. Editar | 4. Remover")
+        op = input("Opção: ")
+        if op == "1":
+            c = self.ler_input("Código Evento: ")
+            n = self.ler_input("Nome Evento: ")
+            t = self.ler_input("Tema: ")
+            h = self.ler_input("Horário (ex: 14:30): ")
+            l = self.ler_input("Local (ID Area/Habitat): ")
+            self.exposicoes.append(Exposicao(c, n, t, h, l))
+            print("Evento criado.")
+        elif op == "2":
+            for e in self.exposicoes: print(f"[{e.cod}] {e.horario} - {e.nome} ({e.local_id})")
+        elif op == "3":
+            c = input("Código a editar: ")
+            e = self.encontrar_por_id(self.exposicoes, c)
+            if e:
+                print("Enter para manter atual.")
+                nn = input(f"Nome ({e.nome}): "); 
+                if nn.strip(): e.nome = nn
+                nt = input(f"Tema ({e.tema}): "); 
+                if nt.strip(): e.tema = nt
+                nh = input(f"Horário ({e.horario}): "); 
+                if nh.strip(): e.horario = nh
+                nl = input(f"Local ({e.local_id}): "); 
+                if nl.strip(): e.local_id = nl
+                print("Editado.")
+            else: print("Não encontrado.")
+        elif op == "4":
+            c = input("Código a remover: ")
+            e = self.encontrar_por_id(self.exposicoes, c)
+            if e:
+                self.exposicoes.remove(e)
+                print("Removido.")
+
+    # --- 7. LOJAS E PRODUTOS (FUNCIONALIDADE 12) ---
     def menu_lojas(self):
-        print("\n--- LOJAS ---")
-        print("1. Adicionar Loja")
-        print("2. Listar Lojas")
+        print("\n--- LOJAS E PRODUTOS ---")
+        print("1. Gerir Lojas")
+        print("2. Gerir Produtos (Inventário)")
+        print("0. Voltar")
+        op = input("Opção: ")
+        if op == "1": self.submenu_lojas()
+        elif op == "2": self.submenu_produtos()
+
+    def submenu_lojas(self):
+        print("\n-- GERIR LOJAS --")
+        print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover")
         op = input("Opção: ")
         if op == "1":
             c = self.ler_input("Código Loja: ")
+            if self.encontrar_por_id(self.lojas, c): 
+                print("Já existe."); return
             n = self.ler_input("Nome Loja: ")
             self.lojas.append(Loja(c, n))
+            print("Loja criada.")
         elif op == "2":
             for l in self.lojas: print(f"[{l.cod}] {l.nome}")
+        elif op == "3":
+            c = input("Código a editar: ")
+            l = self.encontrar_por_id(self.lojas, c)
+            if l:
+                l.nome = self.ler_input(f"Novo Nome ({l.nome}): ")
+                print("Editado.")
+        elif op == "4":
+            c = input("Código a remover: ")
+            l = self.encontrar_por_id(self.lojas, c)
+            if l:
+                self.lojas.remove(l)
+                print("Loja removida.")
+
+    def submenu_produtos(self):
+        print("\n-- GERIR PRODUTOS --")
+        print("1. Adicionar Produto")
+        print("2. Listar Produtos de uma Loja")
+        print("3. Editar Produto")
+        print("4. Remover Produto")
+        op = input("Opção: ")
+
+        if op == "1":
+            lid = input("Código da Loja onde vai adicionar: ")
+            if not self.encontrar_por_id(self.lojas, lid):
+                print("Erro: Loja não existe.")
+                return
+            pid = self.ler_input("Código Produto: ")
+            if self.encontrar_por_id(self.produtos, pid):
+                print("Erro: Produto já existe.")
+                return
+            nome = self.ler_input("Nome Produto: ")
+            preco = self.ler_input("Preço: ", float)
+            qtd = self.ler_input("Quantidade: ", int)
+            self.produtos.append(Produto(pid, lid, nome, preco, qtd))
+            print("Produto adicionado.")
+
+        elif op == "2":
+            lid = input("Código da Loja (Enter para ver todos): ")
+            print(f"{'COD':<5} {'NOME':<20} {'PREÇO':<10} {'QTD':<5} {'LOJA'}")
+            for p in self.produtos:
+                if not lid or p.loja_id == lid:
+                    print(f"{p.cod:<5} {p.nome:<20} {p.preco:<10} {p.quantidade:<5} {p.loja_id}")
+
+        elif op == "3":
+            pid = input("Código do Produto a editar: ")
+            p = self.encontrar_por_id(self.produtos, pid)
+            if p:
+                print(f"A editar {p.nome} (Loja {p.loja_id})")
+                nn = input(f"Nome ({p.nome}): ")
+                if nn.strip(): p.nome = nn
+                npr = input(f"Preço ({p.preco}): ")
+                if npr.strip(): p.preco = float(npr)
+                nq = input(f"Quantidade ({p.quantidade}): ")
+                if nq.strip(): p.quantidade = int(nq)
+                print("Produto atualizado.")
+            else: print("Produto não encontrado.")
+
+        elif op == "4":
+            pid = input("Código a remover: ")
+            p = self.encontrar_por_id(self.produtos, pid)
+            if p:
+                self.produtos.remove(p)
+                print("Produto removido.")
 
     def mostrar_estatisticas(self):
         print("\n=== ESTATÍSTICAS DO ZOO ===")
@@ -269,8 +413,8 @@ class SistemaZoo:
         while True:
             print("\n=== ÁREA DO VISITANTE ===")
             print("1. Consultar Animais e Habitats")
-            print("2. Agenda de Exposições")
-            print("3. Comprar Bilhetes")
+            print("2. Agenda de Exposições & Reservas")
+            print("3. Bilheteira (Comprar Bilhetes)")
             print("4. Mapa Inteligente (Caminho mais curto)")
             print("0. Voltar")
             op = input("Opção: ")
@@ -278,40 +422,68 @@ class SistemaZoo:
             if op == "1":
                 self.menu_animais() 
             elif op == "2":
-                print("\n--- Agenda ---")
-                for e in self.exposicoes: 
-                    print(f"[Horário: {e.horario}] {e.nome} - Tema: {e.tema}")
+                self.menu_reservas_exposicoes()
             elif op == "3":
-                print("\n--- Bilheteira ---")
-                print("1. Bilhete Normal (15€)")
-                print("2. Bilhete Criança (8€)")
-                qtd = self.ler_input("Quantidade: ", int)
-                tipo = input("Tipo (1 ou 2): ")
-                custo = qtd * 15 if tipo == "1" else qtd * 8
-                print(f"Total a pagar: {custo}€")
-                confirmar = input("Confirmar compra? (s/n): ")
-                if confirmar.lower() == 's':
-                    self.receita_bilhetes += custo
-                    print("Compra efetuada! Bem-vindo ao Zoo.")
+                self.menu_bilheteira()
             elif op == "4":
                 self.planear_rota()
             elif op == "0":
                 break
 
+    def menu_reservas_exposicoes(self):
+        print("\n--- AGENDA E RESERVAS ---")
+        print("1. Ver Agenda de Exposições")
+        print("2. Fazer Reserva em Exposição")
+        op = input("Opção: ")
+        
+        if op == "1":
+            if not self.exposicoes:
+                print("Não há exposições agendadas.")
+            for e in self.exposicoes:
+                print(f"[{e.cod}] {e.nome} às {e.horario} (Tema: {e.tema})")
+                
+        elif op == "2":
+            print("\n-- Nova Reserva --")
+            cod_exp = input("Código da Exposição: ")
+            evento = self.encontrar_por_id(self.exposicoes, cod_exp)
+            if not evento:
+                print("Erro: Exposição não encontrada.")
+                return
+            cod_vis = input("O seu Nome ou ID de Visitante: ")
+            nova_reserva = {"CodigoReserva": f"R{len(self.reservas)+1}", "CodigoVisitante": cod_vis, "CodigoExposicao": cod_exp}
+            self.reservas.append(nova_reserva)
+            print(f"Reserva confirmada para '{evento.nome}'!")
+
+    def menu_bilheteira(self):
+        print("\n--- BILHETEIRA ---")
+        print("1. Bilhete Normal (15€)")
+        print("2. Bilhete Criança (8€)")
+        try:
+            qtd = int(input("Quantidade: "))
+            tipo = input("Tipo (1 ou 2): ")
+            custo = qtd * 15 if tipo == "1" else qtd * 8
+            print(f"Total a pagar: {custo}€")
+            conf = input("Confirmar pagamento? (s/n): ")
+            if conf.lower() == 's':
+                self.receita_bilhetes += custo
+                print("Pagamento aceite. Bem-vindo ao Zoo!")
+        except ValueError:
+            print("Erro: Valor inválido.")
+
     def planear_rota(self):
-        print("\n--- Rota Inteligente ---")
-        if not self.habitats:
-            print("Não há habitats suficientes para calcular rotas.")
+        print("\n--- ROTA INTELIGENTE (DIJKSTRA) ---")
+        if not self.grafo.adjacencias:
+            print("AVISO: Não existem conexões definidas no ficheiro 'conexoes.csv'.")
             return
-        print("Habitats:", [h.cod for h in self.habitats])
-        origem = input("Onde está (Código Habitat)? ")
-        destino = input("Onde quer ir? ")
+        print("Habitats disponíveis:", [h.cod for h in self.habitats])
+        origem = input("Código Habitat Início: ")
+        destino = input("Código Habitat Fim: ")
         custo, caminho = self.grafo.dijkstra(origem, destino)
         if caminho:
-            print(f"-> Rota: {' > '.join(caminho)}")
-            print(f"-> Distância: {custo}m")
+            print(f"\n--> Melhor Rota: {' > '.join(caminho)}")
+            print(f"--> Distância Total: {custo} metros")
         else:
-            print("Caminho não encontrado. Verifique as conexões.")
+            print("\nErro: Caminho não encontrado.")
 
     # --- MENUS PRINCIPAIS ---
     def menu_admin(self):
@@ -321,9 +493,9 @@ class SistemaZoo:
             print("2. Gerir Habitats")
             print("3. Gerir Animais")
             print("4. Staff e Eventos")
-            print("5. Lojas")
+            print("5. Lojas e Produtos") # <--- Atualizado
             print("6. Estatísticas")
-            print("7. Guardar Alterações") # <--- NOVO: Opção 7
+            print("7. Guardar Alterações")
             print("0. Voltar")
             op = input("Opção: ")
             
@@ -333,10 +505,9 @@ class SistemaZoo:
             elif op == "4": self.menu_staff_eventos()
             elif op == "5": self.menu_lojas()
             elif op == "6": self.mostrar_estatisticas()
-            elif op == "7": self.guardar_tudo() # <--- NOVO: Chama a gravação
+            elif op == "7": self.guardar_tudo()
             elif op == "0": break
 
-# --- ARRANQUE ---
 def menu_principal():
     sistema = SistemaZoo()
     while True:
