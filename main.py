@@ -1,5 +1,8 @@
 import os
 import time
+
+from pycparser.c_ast import While
+
 from gerifich import GestorFicheiros
 from classes import *
 from grafo import GrafoZoo
@@ -420,7 +423,8 @@ class SistemaZoo:
             op = input("Opção: ")
 
             if op == "1":
-                self.menu_animais() 
+                # self.menu_animais()
+                self.menu_cliente_animais_habitats()
             elif op == "2":
                 self.menu_reservas_exposicoes()
             elif op == "3":
@@ -429,6 +433,59 @@ class SistemaZoo:
                 self.planear_rota()
             elif op == "0":
                 break
+
+    def menu_cliente_animais_habitats(self):#Revisar
+        while True:
+            print("\n--- Animais e Habitats ---")
+            print("1. Listar Animais")
+            print("2. Listar Habitats")
+            print("3. Listar Animais por Habitat")
+            print("0. Voltar")
+            op = input("Opção: ")
+            if op=="1":
+                print(f"{'COD':<5} {'NOME':<15} {'ESPÉCIE':<15} {'HABITAT':<10} {'TRATADOR':<10}")
+                for a in self.animais:
+                    print(f"{a.cod:<5} {a.nome:<15} {a.especie:<15} {a.habitat_id:<10} {a.tratador_id:<10}")
+            elif op=="2":
+                print(f"{'COD':<5} {'NOME':<15}               {'ÁREA':<15}")
+                for h in self.habitats: print(f"[{h.cod}] {h.nome} ({h.tipo}) -> Área: {h.area_id}")
+            elif op=="3":
+                # 1. Create a mapping from habitat ID to habitat name for easy lookup
+                habitat_names = {h.cod: h.nome for h in self.habitats}
+
+                # 2. Group animals by their habitat ID
+                # This uses a dictionary where the keys are habitat IDs and the values are lists of animals
+                animals_by_habitat = {}
+                for animal in self.animais:
+                    habitat_id = animal.habitat_id
+                    if habitat_id not in animals_by_habitat:
+                        animals_by_habitat[habitat_id] = []
+                    animals_by_habitat[habitat_id].append(animal)
+
+                # 3. Print the results, iterating through the grouped data
+                print("\n--- Animais por Habitat ---")
+
+                for habitat_id, animals in animals_by_habitat.items():
+                    # Get the habitat name, or a default message if the ID is not found
+                    habitat_name = habitat_names.get(habitat_id, f"[ID {habitat_id} - Nome Desconhecido]")
+
+                    print(f"\n== Habitat: {habitat_name} (ID: {habitat_id}) ==")
+
+                    # Check if there are animals in this habitat before printing the header
+                    if not animals:
+                        print("  (Nenhum animal neste habitat)")
+                        continue
+
+                    # Print the header for the animals in this specific habitat
+                    print(f"{'COD':<5} {'NOME':<15} {'ESPÉCIE':<15} {'TRATADOR':<10}")
+                    print("-----" + " " * 4 + "-" * 15 + " " * 4 + "-" * 15 + " " * 4 + "-" * 10)
+
+                    # List all the animals in this group
+                    for a in animals:
+                        print(f"{a.cod:<5} {a.nome:<15} {a.especie:<15} {a.tratador_id:<10}")
+            elif op=="0":
+                break
+
 
     def menu_reservas_exposicoes(self):
         print("\n--- AGENDA E RESERVAS ---")
