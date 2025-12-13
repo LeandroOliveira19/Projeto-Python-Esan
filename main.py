@@ -1,7 +1,7 @@
 import os
 import time
 
-from pycparser.c_ast import While
+#from pycparser.c_ast import While
 
 from gerifich import GestorFicheiros
 from classes import *
@@ -488,44 +488,114 @@ class SistemaZoo:
 
 
     def menu_reservas_exposicoes(self):
-        print("\n--- AGENDA E RESERVAS ---")
-        print("1. Ver Agenda de Exposições")
-        print("2. Fazer Reserva em Exposição")
-        op = input("Opção: ")
-        
-        if op == "1":
-            if not self.exposicoes:
-                print("Não há exposições agendadas.")
-            for e in self.exposicoes:
-                print(f"[{e.cod}] {e.nome} às {e.horario} (Tema: {e.tema})")
-                
-        elif op == "2":
-            print("\n-- Nova Reserva --")
-            cod_exp = input("Código da Exposição: ")
-            evento = self.encontrar_por_id(self.exposicoes, cod_exp)
-            if not evento:
-                print("Erro: Exposição não encontrada.")
-                return
-            cod_vis = input("O seu Nome ou ID de Visitante: ")
-            nova_reserva = {"CodigoReserva": f"R{len(self.reservas)+1}", "CodigoVisitante": cod_vis, "CodigoExposicao": cod_exp}
-            self.reservas.append(nova_reserva)
-            print(f"Reserva confirmada para '{evento.nome}'!")
+        while True:
+            print("\n--- AGENDA E RESERVAS ---")
+            print("1. Ver Agenda de Exposições")
+            print("2. Fazer Reserva em Exposição")
+            print("0. Voltar")
+            op = input("Opção: ")
+
+            if op == "1":
+                if not self.exposicoes:
+                    print("Não há exposições agendadas.")
+                for e in self.exposicoes:
+                    print(f"[{e.cod}] {e.nome} às {e.horario} (Tema: {e.tema})")
+
+            elif op == "2":
+                flag=True
+                while flag:
+                    print("\n-- Nova Reserva --")
+                    print("Digite o código da Exposição (0 para voltar)")
+                    cod_exp = input("Código da Exposição: ")
+                    if cod_exp!= "0":
+                        evento = self.encontrar_por_id(self.exposicoes, cod_exp)
+                        if not evento:
+                            print("Erro: Exposição não encontrada.")
+                            return
+                        cod_vis = input("O seu Nome ou ID de Visitante (-1 para cancelar): ")
+                        if cod_vis=="" or not cod_vis=="-1":
+                            nova_reserva = {"CodigoReserva": f"R{len(self.reservas)+1}", "CodigoVisitante": cod_vis, "CodigoExposicao": cod_exp}
+                            self.reservas.append(nova_reserva)
+                            print(f"Reserva confirmada para '{evento.nome}'!")
+                        else:
+                            print("Reserva Cancelada!")
+                            flag=False
+                    else:
+                        flag=False
+
+            elif op=="0":
+                break
 
     def menu_bilheteira(self):
-        print("\n--- BILHETEIRA ---")
-        print("1. Bilhete Normal (15€)")
-        print("2. Bilhete Criança (8€)")
-        try:
+        buying_mode=False#Will be set to true when buying to change text
+        custo_total = 0.0
+
+        def buying_process():
+            buying_mode = True
+            print("Digite a quantidade")
             qtd = int(input("Quantidade: "))
-            tipo = input("Tipo (1 ou 2): ")
-            custo = qtd * 15 if tipo == "1" else qtd * 8
-            print(f"Total a pagar: {custo}€")
-            conf = input("Confirmar pagamento? (s/n): ")
-            if conf.lower() == 's':
-                self.receita_bilhetes += custo
-                print("Pagamento aceite. Bem-vindo ao Zoo!")
-        except ValueError:
-            print("Erro: Valor inválido.")
+            return (buying_mode, qtd)
+
+        while True:
+            print("\n--- BILHETEIRA ---" if not buying_mode else "\n--- BILHETEIRA (A EFETUAR OPERAÇÃO)---")
+            print("1. Bilhete Normal (15€)")
+            print("2. Bilhete Criança (8€)")
+            if buying_mode: print("3. Concluir Compra")
+            print("0. Voltar" if not buying_mode else "0. Cancelar")#Ternary operator
+            op=input("Opção: ")
+            try:
+                if op=="1":
+                    (buying_mode,qtd)=buying_process()
+
+                    if qtd <= 0:
+                        print("Quantidade menor ou igual a zero, voltando a etapa anterior...")
+                    else:
+                        custo_total+=qtd * 15
+
+                elif op=="2":
+                    (buying_mode,qtd)=buying_process()
+
+                    if qtd <= 0:
+                        print("Quantidade menor ou igual a zero, voltando a etapa anterior...")
+                    else:
+                        custo_total += qtd * 8
+
+                elif op=="3" and buying_mode:
+                    print("Valor a pagar: ",custo_total,"€")
+                    conf = input("Confirmar pagamento? (s/n): ")
+                    if conf.lower() == 's':
+                        self.receita_bilhetes += custo_total
+                        print("Pagamento aceite. Bem-vindo ao Zoo!")
+                        break
+                    else:
+                        print("Pagamento cancelado, voltando a etapa anterior...")
+
+                elif op=="0" and not buying_mode:
+                    break
+
+                elif op=="0" and buying_mode:
+                    print("Tem certeza que deseja cancelar a operação?")
+                    print("1. Não")
+                    print("0. Sim")
+                    op2=input("Opção: ")
+                    if op2== "0":
+                        break
+
+            except ValueError:
+                print("Erro: Valor inválido, voltando a etapa anterior...")
+
+
+            # try:
+            #     qtd = int(input("Quantidade: "))
+            #     tipo = input("Tipo (1 ou 2): ")
+            #     custo = qtd * 15 if tipo == "1" else qtd * 8
+            #     print(f"Total a pagar: {custo}€")
+            #     conf = input("Confirmar pagamento? (s/n): ")
+            #     if conf.lower() == 's':
+            #         self.receita_bilhetes += custo
+            #         print("Pagamento aceite. Bem-vindo ao Zoo!")
+            # except ValueError:
+            #     print("Erro: Valor inválido.")
 
     def planear_rota(self):
         print("\n--- ROTA INTELIGENTE (DIJKSTRA) ---")
