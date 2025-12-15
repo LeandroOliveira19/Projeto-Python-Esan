@@ -207,7 +207,7 @@ class SistemaZoo:
                         print("Habitat removido.")
                     else: print("Não encontrado.")
                 else: print("Remoção de habitat cancelada!")
-            elif op=="0":
+            elif op==0:
                 break
 
     # --- 5. GESTÃO DE ANIMAIS ---
