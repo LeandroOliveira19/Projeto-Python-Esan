@@ -147,55 +147,68 @@ class SistemaZoo:
 
     # --- 4. GESTÃO DE HABITATS ---
     def menu_habitats(self):
-        print("\n--- GESTÃO DE HABITATS ---")
-        print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
-        op = input("Opção: ")
-        
-        if op == "1":
-            cod = self.ler_input("Código Habitat: ")
-            if self.encontrar_por_id(self.habitats, cod):
-                print("Erro: Código de Habitat já existe.")
-                return
-            nome = self.ler_input("Nome: ")
-            tipo = self.ler_input("Tipo (ex: Aquático): ")
-            area = self.ler_input("Código da Área: ")
-            
-            if not self.encontrar_por_id(self.areas, area):
-                print("ERRO: Essa área não existe! Crie a área primeiro.")
-            else:
-                self.habitats.append(Habitat(cod, nome, tipo, area))
-                print("Habitat criado!")
+        while True:
+            print("\n--- GESTÃO DE HABITATS ---")
+            print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
+            op = input("Opção: ")
 
-        elif op == "2":
-            for h in self.habitats: print(f"[{h.cod}] {h.nome} ({h.tipo}) -> Área: {h.area_id}")
-            
-        elif op == "3":
-            cod = input("Código a editar: ")
-            h = self.encontrar_por_id(self.habitats, cod)
-            if h:
-                print(f"A editar: {h.nome} (Pressione Enter para manter o atual)")
-                novo_nome = input(f"Novo Nome ({h.nome}): ")
-                if novo_nome.strip(): h.nome = novo_nome
-                novo_tipo = input(f"Novo Tipo ({h.tipo}): ")
-                if novo_tipo.strip(): h.tipo = novo_tipo
-                nova_area = input(f"Nova Área ({h.area_id}): ")
-                if nova_area.strip():
-                    if self.encontrar_por_id(self.areas, nova_area):
-                        h.area_id = nova_area
-                        print("Área atualizada.")
+            if op == "1":
+                print("Digite o código do habitat (-1 para cancelar)")
+                cod = self.ler_input("Código Habitat: ")
+                if cod!="-1":
+                    if self.encontrar_por_id(self.habitats, cod):
+                        print("Erro: Código de Habitat já existe.")
+                        return
+                    nome = self.ler_input("Nome: ")
+                    tipo = self.ler_input("Tipo (ex: Aquático): ")
+                    area = self.ler_input("Código da Área: ")
+
+
+                    if not self.encontrar_por_id(self.areas, area):
+                        print("ERRO: Essa área não existe! Crie a área primeiro.")
                     else:
-                        print("ERRO: A área indicada não existe! A área manteve-se inalterada.")
-                print("Habitat editado com sucesso.")
-            else:
-                print("Habitat não encontrado.")
+                        self.habitats.append(Habitat(cod, nome, tipo, area))
+                        print("Habitat criado!")
+                else: print("Adição de habitat cancelada!")
 
-        elif op == "4":
-            cod = input("Código a remover: ")
-            h = self.encontrar_por_id(self.habitats, cod)
-            if h:
-                self.habitats.remove(h)
-                print("Habitat removido.")
-            else: print("Não encontrado.")
+            elif op == "2":
+                for h in self.habitats: print(f"[{h.cod}] {h.nome} ({h.tipo}) -> Área: {h.area_id}")
+
+            elif op == "3":
+                print("Digite o código do habitat (-1 para cancelar)")
+                cod = input("Código a editar: ")
+                if cod != "-1":
+                    h = self.encontrar_por_id(self.habitats, cod)
+                    if h:
+                        print(f"A editar: {h.nome} (Pressione Enter para manter o atual)")
+                        novo_nome = input(f"Novo Nome ({h.nome}): ")
+                        if novo_nome.strip(): h.nome = novo_nome
+                        novo_tipo = input(f"Novo Tipo ({h.tipo}): ")
+                        if novo_tipo.strip(): h.tipo = novo_tipo
+                        nova_area = input(f"Nova Área ({h.area_id}): ")
+                        if nova_area.strip():
+                            if self.encontrar_por_id(self.areas, nova_area):
+                                h.area_id = nova_area
+                                print("Área atualizada.")
+                            else:
+                                print("ERRO: A área indicada não existe! A área manteve-se inalterada.")
+                        print("Habitat editado com sucesso.")
+                    else:
+                        print("Habitat não encontrado.")
+                else: print("Edição de habitat cancelada!")
+
+            elif op == "4":
+                print("Digite o código do habitat (-1 para cancelar)")
+                cod = input("Código a remover: ")
+                if cod != "-1":
+                    h = self.encontrar_por_id(self.habitats, cod)
+                    if h:
+                        self.habitats.remove(h)
+                        print("Habitat removido.")
+                    else: print("Não encontrado.")
+                else: print("Remoção de habitat cancelada!")
+            elif op==0:
+                break
 
     # --- 5. GESTÃO DE ANIMAIS ---
     def menu_animais(self):
