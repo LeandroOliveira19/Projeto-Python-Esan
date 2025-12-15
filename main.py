@@ -1,8 +1,5 @@
 import os
 import time
-
-#from pycparser.c_ast import While
-
 from gerifich import GestorFicheiros
 from classes import *
 from grafo import GrafoZoo
@@ -17,8 +14,12 @@ class SistemaZoo:
         self.tratadores = []
         self.exposicoes = []
         self.lojas = []
-        self.produtos = [] # <--- NOVO: Lista de Produtos
+        self.produtos = [] 
         self.reservas = [] 
+        
+        # --- NOVOS CONTADORES PARA ESTATÍSTICAS ---
+        self.qtd_bilhetes_adulto = 0
+        self.qtd_bilhetes_crianca = 0
         
         self.grafo = GrafoZoo()
         self.receita_bilhetes = 0.0
@@ -52,9 +53,10 @@ class SistemaZoo:
         for l in self.gestor_db.ler_csv("lojas.csv"):
             self.lojas.append(Loja(l["CodigoLoja"], l["Nome"]))
 
-        # Carregar Produtos (NOVO)
+        # Carregar Produtos (ATUALIZADO PARA LER VENDAS)
         for l in self.gestor_db.ler_csv("produtos.csv"):
-            self.produtos.append(Produto(l["CodigoProduto"], l["CodigoLoja"], l["Nome"], float(l["Preco"]), int(l["Quantidade"])))
+            vendas = int(l.get("Vendas", 0)) # Lê as vendas guardadas, ou 0 se não existir
+            self.produtos.append(Produto(l["CodigoProduto"], l["CodigoLoja"], l["Nome"], float(l["Preco"]), int(l["Quantidade"]), vendas))
 
         # Carregar Reservas
         for l in self.gestor_db.ler_csv("reservas.csv"):
@@ -64,6 +66,14 @@ class SistemaZoo:
         for l in self.gestor_db.ler_csv("conexoes.csv"):
             self.grafo.adicionar_conexao(l["CodigoHabitatA"], l["CodigoHabitatB"], l["Distancia"])
 
+        # Carregar Estatísticas Financeiras (NOVO)
+        fin = self.gestor_db.ler_csv("financeiro.csv")
+        if fin:
+            self.qtd_bilhetes_adulto = int(fin[0].get("Adulto", 0))
+            self.qtd_bilhetes_crianca = int(fin[0].get("Crianca", 0))
+            # Recalcula a receita total baseada no histórico
+            self.receita_bilhetes = (self.qtd_bilhetes_adulto * 15.0) + (self.qtd_bilhetes_crianca * 8.0)
+
     def guardar_tudo(self):
         print("\n>> A guardar dados no disco...")
         self.gestor_db.guardar_csv("areas.csv", ["CodigoArea", "Nome", "Descricao"], [x.to_dict() for x in self.areas])
@@ -72,8 +82,14 @@ class SistemaZoo:
         self.gestor_db.guardar_csv("animais.csv", ["CodigoAnimal", "NomeComum", "NomeCientifico", "Especie", "Idade", "CodigoHabitat", "CodigoTratador"], [x.to_dict() for x in self.animais])
         self.gestor_db.guardar_csv("exposicoes.csv", ["CodigoExposicao", "Nome", "Tema", "Horario", "LocalID"], [x.to_dict() for x in self.exposicoes])
         self.gestor_db.guardar_csv("lojas.csv", ["CodigoLoja", "Nome"], [x.to_dict() for x in self.lojas])
-        self.gestor_db.guardar_csv("produtos.csv", ["CodigoProduto", "CodigoLoja", "Nome", "Preco", "Quantidade"], [x.to_dict() for x in self.produtos])
         self.gestor_db.guardar_csv("reservas.csv", ["CodigoReserva", "CodigoVisitante", "CodigoExposicao"], self.reservas)
+        
+        # Guardar Produtos (Incluindo Vendas)
+        self.gestor_db.guardar_csv("produtos.csv", ["CodigoProduto", "CodigoLoja", "Nome", "Preco", "Quantidade", "Vendas"], [x.to_dict() for x in self.produtos])
+        
+        # Guardar Financeiro (NOVO)
+        dados_fin = [{"Adulto": self.qtd_bilhetes_adulto, "Crianca": self.qtd_bilhetes_crianca}]
+        self.gestor_db.guardar_csv("financeiro.csv", ["Adulto", "Crianca"], dados_fin)
         
         print(">> Sucesso! Todos os ficheiros foram atualizados.\n")
 
@@ -91,9 +107,16 @@ class SistemaZoo:
                 if val.strip(): return val
                 print("Erro: O campo não pode estar vazio.")
 
+    # --- ALTERAÇÃO: Comparação "Case Insensitive" ---
     def encontrar_por_id(self, lista, id_procurado, atributo_id="cod"):
+        # Normaliza o input (remove espaços e converte para MAIÚSCULAS)
+        procura_normalizada = str(id_procurado).strip().upper()
+        
         for obj in lista:
-            if getattr(obj, atributo_id) == id_procurado:
+            # Obtém o valor do objeto e também normaliza para comparar
+            valor_obj = str(getattr(obj, atributo_id)).strip().upper()
+            
+            if valor_obj == procura_normalizada:
                 return obj
         return None
 
@@ -105,7 +128,8 @@ class SistemaZoo:
             op = input("Opção: ")
             if op == "1":
                 print("Digite o código da área (-1 para cancelar)")
-                cod = self.ler_input("Código Área: ")
+                # .upper() força a guardar em maiúsculas
+                cod = self.ler_input("Código Área: ").upper()
                 if cod!="-1":
                     if self.encontrar_por_id(self.areas, cod):
                         print("Erro: Código já existe!")
@@ -117,7 +141,7 @@ class SistemaZoo:
                 else: print("Adição de área cancelada!")
             elif op == "2":
                 for a in self.areas: print(f"[{a.cod}] {a.nome} - {a.descricao}")
-            elif op == "3": # EDICAO NOVA
+            elif op == "3": 
                 print("Digite o código da área (-1 para cancelar)")
                 cod = input("Código a editar: ")
                 if cod!="-1":
@@ -137,7 +161,6 @@ class SistemaZoo:
                 if cod!="-1":
                     obj = self.encontrar_por_id(self.areas, cod)
                     if obj:
-                        # Opcional: Verificar se há habitats nesta área antes de remover
                         self.areas.remove(obj)
                         print("Área removida.")
                     else: print("Área não encontrada.")
@@ -154,7 +177,7 @@ class SistemaZoo:
 
             if op == "1":
                 print("Digite o código do habitat (-1 para cancelar)")
-                cod = self.ler_input("Código Habitat: ")
+                cod = self.ler_input("Código Habitat: ").upper() # Força maiúsculas
                 if cod!="-1":
                     if self.encontrar_por_id(self.habitats, cod):
                         print("Erro: Código de Habitat já existe.")
@@ -162,7 +185,6 @@ class SistemaZoo:
                     nome = self.ler_input("Nome: ")
                     tipo = self.ler_input("Tipo (ex: Aquático): ")
                     area = self.ler_input("Código da Área: ")
-
 
                     if not self.encontrar_por_id(self.areas, area):
                         print("ERRO: Essa área não existe! Crie a área primeiro.")
@@ -188,7 +210,7 @@ class SistemaZoo:
                         nova_area = input(f"Nova Área ({h.area_id}): ")
                         if nova_area.strip():
                             if self.encontrar_por_id(self.areas, nova_area):
-                                h.area_id = nova_area
+                                h.area_id = nova_area.upper() # Guarda em maiúsculas
                                 print("Área atualizada.")
                             else:
                                 print("ERRO: A área indicada não existe! A área manteve-se inalterada.")
@@ -221,7 +243,7 @@ class SistemaZoo:
         op = input("Opção: ")
 
         if op == "1":
-            cod = self.ler_input("Código Animal: ")
+            cod = self.ler_input("Código Animal: ").upper()
             if self.encontrar_por_id(self.animais, cod):
                 print("Erro: Já existe um animal com este código.")
                 return
@@ -278,7 +300,7 @@ class SistemaZoo:
         print("1. Novo | 2. Listar | 3. Editar | 4. Remover")
         op = input("Opção: ")
         if op == "1":
-            c = self.ler_input("Código: ")
+            c = self.ler_input("Código: ").upper()
             if self.encontrar_por_id(self.tratadores, c):
                 print("Erro: Código já existe.")
                 return
@@ -309,7 +331,7 @@ class SistemaZoo:
         print("1. Nova | 2. Listar | 3. Editar | 4. Remover")
         op = input("Opção: ")
         if op == "1":
-            c = self.ler_input("Código Evento: ")
+            c = self.ler_input("Código Evento: ").upper()
             n = self.ler_input("Nome Evento: ")
             t = self.ler_input("Tema: ")
             h = self.ler_input("Horário (ex: 14:30): ")
@@ -340,7 +362,7 @@ class SistemaZoo:
                 self.exposicoes.remove(e)
                 print("Removido.")
 
-    # --- 7. LOJAS E PRODUTOS (FUNCIONALIDADE 12) ---
+    # --- 7. LOJAS E PRODUTOS ---
     def menu_lojas(self):
         print("\n--- LOJAS E PRODUTOS ---")
         print("1. Gerir Lojas")
@@ -355,7 +377,7 @@ class SistemaZoo:
         print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover")
         op = input("Opção: ")
         if op == "1":
-            c = self.ler_input("Código Loja: ")
+            c = self.ler_input("Código Loja: ").upper()
             if self.encontrar_por_id(self.lojas, c): 
                 print("Já existe."); return
             n = self.ler_input("Nome Loja: ")
@@ -389,7 +411,7 @@ class SistemaZoo:
             if not self.encontrar_por_id(self.lojas, lid):
                 print("Erro: Loja não existe.")
                 return
-            pid = self.ler_input("Código Produto: ")
+            pid = self.ler_input("Código Produto: ").upper()
             if self.encontrar_por_id(self.produtos, pid):
                 print("Erro: Produto já existe.")
                 return
@@ -403,7 +425,8 @@ class SistemaZoo:
             lid = input("Código da Loja (Enter para ver todos): ")
             print(f"{'COD':<5} {'NOME':<20} {'PREÇO':<10} {'QTD':<5} {'LOJA'}")
             for p in self.produtos:
-                if not lid or p.loja_id == lid:
+                # Normaliza para comparar (lid.upper())
+                if not lid or p.loja_id == lid.strip().upper():
                     print(f"{p.cod:<5} {p.nome:<20} {p.preco:<10} {p.quantidade:<5} {p.loja_id}")
 
         elif op == "3":
@@ -427,16 +450,82 @@ class SistemaZoo:
                 self.produtos.remove(p)
                 print("Produto removido.")
 
-    def mostrar_estatisticas(self):
-        print("\n=== ESTATÍSTICAS DO ZOO ===")
-        print(f"Total Animais: {len(self.animais)}")
-        print(f"Total Habitats: {len(self.habitats)}")
-        print(f"Total Visitantes (Simulado): {len(self.animais) * 5 + 20}")
-        print(f"Receita de Bilhetes (Sessão): {self.receita_bilhetes}€")
-        if self.habitats:
-            print(f"Habitat mais popular: {self.habitats[0].nome}")
+    # --- 8. ESTATÍSTICAS AVANÇADAS ---
+    def desenhar_barra(self, valor, maximo, tamanho=20):
+        if maximo == 0: return ""
+        perc = valor / maximo
+        chars = int(perc * tamanho)
+        return "█" * chars + "░" * (tamanho - chars)
 
-    # --- 8. APLICAÇÃO CLIENTE ---
+    def mostrar_estatisticas(self):
+        print("\n" + "="*40)
+        print("   DASHBOARD ZOO SYSTEM 2025")
+        print("="*40)
+        
+        # 1. VISÃO GERAL
+        total_animais = len(self.animais)
+        total_habitats = len(self.habitats)
+        print(f"\n[GERAL]")
+        print(f"Total Animais:   {total_animais}")
+        print(f"Total Habitats:  {total_habitats}")
+        print(f"Total Staff:     {len(self.tratadores)}")
+
+        # 2. FINANCEIRO (Bilheteira)
+        total_bilhetes = self.qtd_bilhetes_adulto + self.qtd_bilhetes_crianca
+        receita_real = (self.qtd_bilhetes_adulto * 15) + (self.qtd_bilhetes_crianca * 8)
+
+        print(f"\n[FINANCEIRO - BILHETEIRA]")
+        print(f"Receita Total:   {receita_real:.2f}€")
+        print(f"Bilhetes Vendidos: {total_bilhetes}")
+        
+        if total_bilhetes > 0:
+            p_adulto = (self.qtd_bilhetes_adulto / total_bilhetes) * 100
+            p_crianca = (self.qtd_bilhetes_crianca / total_bilhetes) * 100
+            print(f"\nDistribuição de Visitantes:")
+            print(f"Adultos  ({int(p_adulto)}%) |{self.desenhar_barra(self.qtd_bilhetes_adulto, total_bilhetes)}| ({self.qtd_bilhetes_adulto})")
+            print(f"Crianças ({int(p_crianca)}%) |{self.desenhar_barra(self.qtd_bilhetes_crianca, total_bilhetes)}| ({self.qtd_bilhetes_crianca})")
+        else:
+            print("(Sem dados de bilhetes ainda)")
+
+        # 3. VENDAS DE PRODUTOS
+        print(f"\n[TOP PRODUTOS MAIS VENDIDOS]")
+        # Ordena produtos por vendas (do maior para o menor)
+        produtos_ordenados = sorted(self.produtos, key=lambda p: p.vendas, reverse=True)
+        top_3 = produtos_ordenados[:3]
+        
+        if top_3 and top_3[0].vendas > 0:
+            max_vendas = top_3[0].vendas
+            for p in top_3:
+                if p.vendas > 0:
+                    barra = self.desenhar_barra(p.vendas, max_vendas, 15)
+                    print(f"{p.nome:<15} |{barra}| {p.vendas} un.")
+        else:
+            print("(Ainda não foram vendidos produtos)")
+
+        # 4. EXPOSIÇÕES MAIS POPULARES
+        print(f"\n[POPULARIDADE DAS EXPOSIÇÕES]")
+        if not self.exposicoes:
+            print("(Sem exposições criadas)")
+        else:
+            contagem = {}
+            for r in self.reservas:
+                eid = r["CodigoExposicao"]
+                contagem[eid] = contagem.get(eid, 0) + 1
+            
+            expos_ordenadas = sorted(self.exposicoes, key=lambda e: contagem.get(e.cod, 0), reverse=True)
+            
+            if contagem:
+                max_res = max(contagem.values())
+                for e in expos_ordenadas[:3]:
+                    qtd = contagem.get(e.cod, 0)
+                    barra = self.desenhar_barra(qtd, max_res, 15)
+                    print(f"{e.nome:<15} |{barra}| {qtd} reservas")
+            else:
+                print("(Sem reservas registadas)")
+
+        input("\nPressione Enter para voltar...")
+
+    # --- 9. APLICAÇÃO CLIENTE ---
     def menu_visitante(self):
         import codigo.dynamic_map
         while True:
@@ -444,26 +533,28 @@ class SistemaZoo:
             print("1. Consultar Animais e Habitats")
             print("2. Agenda de Exposições & Reservas")
             print("3. Bilheteira (Comprar Bilhetes)")
-            print("4. Planear Rota (Caminho mais curto)")
-            print("5. Visualizar Mapa")
+            print("4. Loja de Souvenirs (Comprar)") 
+            print("5. Planear Rota (Caminho mais curto)")
+            print("6. Visualizar Mapa")
             print("0. Voltar")
             op = input("Opção: ")
 
             if op == "1":
-                # self.menu_animais()
                 self.menu_cliente_animais_habitats()
             elif op == "2":
                 self.menu_reservas_exposicoes()
             elif op == "3":
                 self.menu_bilheteira()
             elif op == "4":
-                self.planear_rota()
+                self.menu_cliente_loja() 
             elif op == "5":
+                self.planear_rota()
+            elif op == "6":
                codigo.dynamic_map.show_dynamic_map(self.grafo,self.habitats)
             elif op == "0":
                 break
 
-    def menu_cliente_animais_habitats(self):#Revisar
+    def menu_cliente_animais_habitats(self):
         while True:
             print("\n--- Animais e Habitats ---")
             print("1. Listar Animais")
@@ -479,11 +570,7 @@ class SistemaZoo:
                 print(f"{'COD':<5} {'NOME':<15}               {'ÁREA':<15}")
                 for h in self.habitats: print(f"[{h.cod}] {h.nome} ({h.tipo}) -> Área: {h.area_id}")
             elif op=="3":
-                # 1. Create a mapping from habitat ID to habitat name for easy lookup
                 habitat_names = {h.cod: h.nome for h in self.habitats}
-
-                # 2. Group animals by their habitat ID
-                # This uses a dictionary where the keys are habitat IDs and the values are lists of animals
                 animals_by_habitat = {}
                 for animal in self.animais:
                     habitat_id = animal.habitat_id
@@ -491,25 +578,19 @@ class SistemaZoo:
                         animals_by_habitat[habitat_id] = []
                     animals_by_habitat[habitat_id].append(animal)
 
-                # 3. Print the results, iterating through the grouped data
                 print("\n--- Animais por Habitat ---")
 
                 for habitat_id, animals in animals_by_habitat.items():
-                    # Get the habitat name, or a default message if the ID is not found
                     habitat_name = habitat_names.get(habitat_id, f"[ID {habitat_id} - Nome Desconhecido]")
-
                     print(f"\n== Habitat: {habitat_name} (ID: {habitat_id}) ==")
 
-                    # Check if there are animals in this habitat before printing the header
                     if not animals:
                         print("  (Nenhum animal neste habitat)")
                         continue
 
-                    # Print the header for the animals in this specific habitat
                     print(f"{'COD':<5} {'NOME':<15} {'ESPÉCIE':<15} {'TRATADOR':<10}")
                     print("-----" + " " * 4 + "-" * 15 + " " * 4 + "-" * 15 + " " * 4 + "-" * 10)
 
-                    # List all the animals in this group
                     for a in animals:
                         print(f"{a.cod:<5} {a.nome:<15} {a.especie:<15} {a.tratador_id:<10}")
             elif op=="0":
@@ -556,8 +637,12 @@ class SistemaZoo:
                 break
 
     def menu_bilheteira(self):
-        buying_mode=False#Will be set to true when buying to change text
+        buying_mode=False
         custo_total = 0.0
+        
+        # Variáveis temporárias para contar nesta sessão de compra
+        temp_adultos = 0
+        temp_criancas = 0
 
         def buying_process():
             buying_mode = True
@@ -570,61 +655,75 @@ class SistemaZoo:
             print("1. Bilhete Normal (15€)")
             print("2. Bilhete Criança (8€)")
             if buying_mode: print("3. Concluir Compra")
-            print("0. Voltar" if not buying_mode else "0. Cancelar")#Ternary operator
+            print("0. Voltar" if not buying_mode else "0. Cancelar")
             op=input("Opção: ")
             try:
                 if op=="1":
                     (buying_mode,qtd)=buying_process()
-
                     if qtd <= 0:
-                        print("Quantidade menor ou igual a zero, voltando a etapa anterior...")
+                        print("Quantidade menor ou igual a zero.")
                     else:
                         custo_total+=qtd * 15
+                        temp_adultos += qtd # Conta temporariamente
 
                 elif op=="2":
                     (buying_mode,qtd)=buying_process()
-
                     if qtd <= 0:
-                        print("Quantidade menor ou igual a zero, voltando a etapa anterior...")
+                        print("Quantidade menor ou igual a zero.")
                     else:
                         custo_total += qtd * 8
+                        temp_criancas += qtd # Conta temporariamente
 
                 elif op=="3" and buying_mode:
                     print("Valor a pagar: ",custo_total,"€")
                     conf = input("Confirmar pagamento? (s/n): ")
                     if conf.lower() == 's':
                         self.receita_bilhetes += custo_total
+                        
+                        # --- ATUALIZA ESTATÍSTICAS ---
+                        self.qtd_bilhetes_adulto += temp_adultos
+                        self.qtd_bilhetes_crianca += temp_criancas
+                        
                         print("Pagamento aceite. Bem-vindo ao Zoo!")
                         break
                     else:
-                        print("Pagamento cancelado, voltando a etapa anterior...")
+                        print("Pagamento cancelado.")
 
                 elif op=="0" and not buying_mode:
                     break
 
                 elif op=="0" and buying_mode:
-                    print("Tem certeza que deseja cancelar a operação?")
-                    print("1. Não")
-                    print("0. Sim")
-                    op2=input("Opção: ")
-                    if op2== "0":
+                    print("Tem certeza que deseja cancelar?")
+                    if input("1. Não | 0. Sim: ") == "0":
                         break
 
             except ValueError:
-                print("Erro: Valor inválido, voltando a etapa anterior...")
+                print("Erro: Valor inválido.")
 
+    # --- NOVA FUNÇÃO: LOJA DO CLIENTE ---
+    def menu_cliente_loja(self):
+        print("\n--- LOJA DE SOUVENIRS ---")
+        if not self.produtos:
+            print("A loja está vazia hoje.")
+            return
 
-            # try:
-            #     qtd = int(input("Quantidade: "))
-            #     tipo = input("Tipo (1 ou 2): ")
-            #     custo = qtd * 15 if tipo == "1" else qtd * 8
-            #     print(f"Total a pagar: {custo}€")
-            #     conf = input("Confirmar pagamento? (s/n): ")
-            #     if conf.lower() == 's':
-            #         self.receita_bilhetes += custo
-            #         print("Pagamento aceite. Bem-vindo ao Zoo!")
-            # except ValueError:
-            #     print("Erro: Valor inválido.")
+        print(f"{'COD':<5} {'NOME':<20} {'PREÇO':<10}")
+        print("-" * 40)
+        for p in self.produtos:
+            if p.quantidade > 0:
+                print(f"{p.cod:<5} {p.nome:<20} {p.preco}€")
+        
+        cod = input("\nDigite o código do produto para comprar (0 para sair): ")
+        if cod != "0":
+            prod = self.encontrar_por_id(self.produtos, cod)
+            if prod and prod.quantidade > 0:
+                print(f"Vai comprar: {prod.nome} ({prod.preco}€)")
+                if input("Confirmar? (s/n): ") == 's':
+                    prod.quantidade -= 1
+                    prod.vendas += 1 # <--- ATUALIZA A ESTATÍSTICA DE VENDAS
+                    print("Obrigado pela compra!")
+            else:
+                print("Produto não encontrado ou esgotado.")
 
     def planear_rota(self):
         print("\n--- ROTA INTELIGENTE (DIJKSTRA) ---")
@@ -634,7 +733,10 @@ class SistemaZoo:
         print("Habitats disponíveis:", [h.cod for h in self.habitats])
         origem = input("Código Habitat Início: ")
         destino = input("Código Habitat Fim: ")
-        custo, caminho = self.grafo.dijkstra(origem, destino)
+        
+        # Converte para maiúsculas antes de calcular
+        custo, caminho = self.grafo.dijkstra(origem.strip().upper(), destino.strip().upper())
+        
         if caminho:
             print(f"\n--> Melhor Rota: {' > '.join(caminho)}")
             print(f"--> Distância Total: {custo} metros")
@@ -649,8 +751,8 @@ class SistemaZoo:
             print("2. Gerir Habitats")
             print("3. Gerir Animais")
             print("4. Staff e Eventos")
-            print("5. Lojas e Produtos") # <--- Atualizado
-            print("6. Estatísticas")
+            print("5. Lojas e Produtos") 
+            print("6. Estatísticas Avançadas") # <--- Atualizado
             print("7. Guardar Alterações")
             print("0. Voltar")
             op = input("Opção: ")

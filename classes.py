@@ -57,14 +57,16 @@ class Loja:
         return {"CodigoLoja": self.cod, "Nome": self.nome}
 
 class Produto:
-    def __init__(self, cod, loja_id, nome, preco, quantidade):
+    def __init__(self, cod, loja_id, nome, preco, quantidade, vendas=0):
         self.cod = cod
         self.loja_id = loja_id
         self.nome = nome
         self.preco = preco
         self.quantidade = quantidade
+        self.vendas = vendas 
     def to_dict(self):
         return {
             "CodigoProduto": self.cod, "CodigoLoja": self.loja_id, 
-            "Nome": self.nome, "Preco": self.preco, "Quantidade": self.quantidade
+            "Nome": self.nome, "Preco": self.preco, 
+            "Quantidade": self.quantidade, "Vendas": self.vendas
         }
