@@ -26,7 +26,7 @@ def show_dynamic_map(grafo, habitats):
     G.add_edges_from(edge_list)
 
     # 3. Desenhar
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(15, 10),num='ZOO SYSTEM 2025 - Mapa de Habitats')
     plt.axis('off')
     plt.title('ZOO SYSTEM 2025 - Mapa de Habitats', fontsize=16, fontweight='bold', color='darkgreen')
 
@@ -105,7 +105,7 @@ def show_dynamic_map(grafo, habitats):
                 extent=(xmin, xmax, ymin, ymax),
                 aspect='auto',
                 zorder=-1,
-                alpha=0.7
+                alpha=0.5
             )
 
 
