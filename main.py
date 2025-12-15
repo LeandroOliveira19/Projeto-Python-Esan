@@ -99,39 +99,51 @@ class SistemaZoo:
 
     # --- 3. GESTÃO DE ÁREAS ---
     def menu_areas(self):
-        print("\n--- GESTÃO DE ÁREAS ---")
-        print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
-        op = input("Opção: ")
-        if op == "1":
-            cod = self.ler_input("Código Área: ")
-            if self.encontrar_por_id(self.areas, cod):
-                print("Erro: Código já existe!")
-                return
-            nome = self.ler_input("Nome: ")
-            desc = self.ler_input("Descrição: ")
-            self.areas.append(Area(cod, nome, desc))
-            print("Área criada!")
-        elif op == "2":
-            for a in self.areas: print(f"[{a.cod}] {a.nome} - {a.descricao}")
-        elif op == "3": # EDICAO NOVA
-            cod = input("Código a editar: ")
-            obj = self.encontrar_por_id(self.areas, cod)
-            if obj:
-                print(f"A editar '{obj.nome}' (Enter para manter)")
-                novo_n = input(f"Nome ({obj.nome}): ")
-                if novo_n.strip(): obj.nome = novo_n
-                novo_d = input(f"Descrição ({obj.descricao}): ")
-                if novo_d.strip(): obj.descricao = novo_d
-                print("Área atualizada.")
-            else: print("Não encontrada.")
-        elif op == "4":
-            cod = input("Código a remover: ")
-            obj = self.encontrar_por_id(self.areas, cod)
-            if obj: 
-                # Opcional: Verificar se há habitats nesta área antes de remover
-                self.areas.remove(obj)
-                print("Área removida.")
-            else: print("Área não encontrada.")
+        while True:
+            print("\n--- GESTÃO DE ÁREAS ---")
+            print("1. Adicionar | 2. Listar | 3. Editar | 4. Remover | 0. Voltar")
+            op = input("Opção: ")
+            if op == "1":
+                print("Digite o código da área (-1 para cancelar)")
+                cod = self.ler_input("Código Área: ")
+                if cod!="-1":
+                    if self.encontrar_por_id(self.areas, cod):
+                        print("Erro: Código já existe!")
+                        return
+                    nome = self.ler_input("Nome: ")
+                    desc = self.ler_input("Descrição: ")
+                    self.areas.append(Area(cod, nome, desc))
+                    print("Área criada!")
+                else: print("Adição de área cancelada!")
+            elif op == "2":
+                for a in self.areas: print(f"[{a.cod}] {a.nome} - {a.descricao}")
+            elif op == "3": # EDICAO NOVA
+                print("Digite o código da área (-1 para cancelar)")
+                cod = input("Código a editar: ")
+                if cod!="-1":
+                    obj = self.encontrar_por_id(self.areas, cod)
+                    if obj:
+                        print(f"A editar '{obj.nome}' (Enter para manter)")
+                        novo_n = input(f"Nome ({obj.nome}): ")
+                        if novo_n.strip(): obj.nome = novo_n
+                        novo_d = input(f"Descrição ({obj.descricao}): ")
+                        if novo_d.strip(): obj.descricao = novo_d
+                        print("Área atualizada.")
+                    else: print("Não encontrada.")
+                else: print("Edição de área cancelada!")
+            elif op == "4":
+                print("Digite o código da área (-1 para cancelar)")
+                cod = input("Código a remover: ")
+                if cod!="-1":
+                    obj = self.encontrar_por_id(self.areas, cod)
+                    if obj:
+                        # Opcional: Verificar se há habitats nesta área antes de remover
+                        self.areas.remove(obj)
+                        print("Área removida.")
+                    else: print("Área não encontrada.")
+                else: print("Remoção de área cancelada!")
+            elif op=="0":
+                break
 
     # --- 4. GESTÃO DE HABITATS ---
     def menu_habitats(self):
