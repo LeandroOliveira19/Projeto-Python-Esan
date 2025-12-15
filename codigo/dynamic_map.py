@@ -48,39 +48,70 @@ def show_dynamic_map(grafo, habitats):
     plt.text(0.02, 0.02, caption_text, transform=plt.gca().transAxes, fontsize=10,
              bbox=dict(boxstyle="round", fc="white", ec="gray", alpha=0.9), verticalalignment='bottom')
 
-    # 5. Imagem de Fundo
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    full_image_path = os.path.join(base_dir, "img", "girafe.jpeg")
-    
-    if os.path.exists(full_image_path):
+    if os.name=="windows":
+        # 5. Imagem de Fundo
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        full_image_path = os.path.join(base_dir, "img", "girafe.jpeg")
+
+        if os.path.exists(full_image_path):
+            try:
+                bg_image = plt.imread(full_image_path)
+                ax = plt.gca()
+                xmin, xmax = ax.get_xlim()
+                ymin, ymax = ax.get_ylim()
+                ax.imshow(bg_image, extent=(xmin, xmax, ymin, ymax), aspect='auto', zorder=-1, alpha=0.5)
+            except:
+                pass
+
+        # 6. GUARDAR NA PASTA TEMPORÁRIA (Solução Definitiva)
         try:
-            bg_image = plt.imread(full_image_path)
-            ax = plt.gca()
+            # Gera um nome único
+            timestamp = int(time.time())
+            nome_ficheiro = f"mapa_zoo_{timestamp}.png"
+
+            # Obtém a pasta temporária do Windows (ex: C:\Users\...\AppData\Local\Temp)
+            pasta_temp = tempfile.gettempdir()
+            caminho_completo = os.path.join(pasta_temp, nome_ficheiro)
+
+            # Guarda lá (onde temos sempre permissão)
+            plt.savefig(caminho_completo, dpi=150, bbox_inches='tight')
+            print(f"\n>> Sucesso! Mapa gerado em: {caminho_completo}")
+
+            # Abre a imagem
+            print(">> A abrir imagem...")
+            os.startfile(caminho_completo)
+        except Exception as e:
+            print(f"\n[ERRO CRÍTICO] Não foi possível gerar o mapa: {e}")
+        finally:
+            plt.close()
+    else:
+        # background
+        image_path = "codigo/img/girafe.jpeg"
+
+        # Get the current axes object
+        ax = plt.gca()
+        # --- ADD BACKGROUND IMAGE ---
+        try:
+            # 1. Load the image
+            bg_image = plt.imread(image_path)
+
+            # Get the current x and y limits after drawing the graph
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
-            ax.imshow(bg_image, extent=(xmin, xmax, ymin, ymax), aspect='auto', zorder=-1, alpha=0.5)
-        except:
-            pass
 
-    # 6. GUARDAR NA PASTA TEMPORÁRIA (Solução Definitiva)
-    try:
-        # Gera um nome único
-        timestamp = int(time.time())
-        nome_ficheiro = f"mapa_zoo_{timestamp}.png"
-        
-        # Obtém a pasta temporária do Windows (ex: C:\Users\...\AppData\Local\Temp)
-        pasta_temp = tempfile.gettempdir()
-        caminho_completo = os.path.join(pasta_temp, nome_ficheiro)
-        
-        # Guarda lá (onde temos sempre permissão)
-        plt.savefig(caminho_completo, dpi=150, bbox_inches='tight')
-        print(f"\n>> Sucesso! Mapa gerado em: {caminho_completo}")
-        
-        # Abre a imagem
-        print(">> A abrir imagem...")
-        os.startfile(caminho_completo)
-        
-    except Exception as e:
-        print(f"\n[ERRO CRÍTICO] Não foi possível gerar o mapa: {e}")
-    finally:
-        plt.close()
+            # Display the background image
+            ax.imshow(
+                bg_image,
+                extent=(xmin, xmax, ymin, ymax),
+                aspect='auto',
+                zorder=-1,
+                alpha=0.7
+            )
+
+
+        except FileNotFoundError:
+            print(f"AVISO: Imagem de fundo não encontrada em: {image_path}. O mapa será gerado sem imagem de fundo.")
+
+        plt.tight_layout()
+        plt.show()
+
