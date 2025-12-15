@@ -413,12 +413,14 @@ class SistemaZoo:
 
     # --- 8. APLICAÇÃO CLIENTE ---
     def menu_visitante(self):
+        import codigo.dynamic_map
         while True:
             print("\n=== ÁREA DO VISITANTE ===")
             print("1. Consultar Animais e Habitats")
             print("2. Agenda de Exposições & Reservas")
             print("3. Bilheteira (Comprar Bilhetes)")
-            print("4. Mapa Inteligente (Caminho mais curto)")
+            print("4. Planear Rota (Caminho mais curto)")
+            print("5. Visualizar Mapa")
             print("0. Voltar")
             op = input("Opção: ")
 
@@ -431,6 +433,8 @@ class SistemaZoo:
                 self.menu_bilheteira()
             elif op == "4":
                 self.planear_rota()
+            elif op == "5":
+               codigo.dynamic_map.show_dynamic_map(self.grafo,self.habitats)
             elif op == "0":
                 break
 
