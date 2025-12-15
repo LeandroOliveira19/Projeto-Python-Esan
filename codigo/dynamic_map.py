@@ -48,7 +48,7 @@ def show_dynamic_map(grafo, habitats):
     plt.text(0.02, 0.02, caption_text, transform=plt.gca().transAxes, fontsize=10,
              bbox=dict(boxstyle="round", fc="white", ec="gray", alpha=0.9), verticalalignment='bottom')
 
-    if os.name=="windows":
+    if os.name=="nt":#posix=based on unix and nt=windows
         # 5. Imagem de Fundo
         base_dir = os.path.dirname(os.path.abspath(__file__))
         full_image_path = os.path.join(base_dir, "img", "girafe.jpeg")
