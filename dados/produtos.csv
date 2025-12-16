@@ -1,5 +1,5 @@
-CodigoProduto,CodigoLoja,Nome,Preco,Quantidade
-P01,L01,Peluche Leao,15.5,50
-P02,L01,T-Shirt Zoo,20.0,30
-P03,L02,Agua 0.5L,1.5,100
-P04,L02,Sandes Mista,3.5,40
+CodigoProduto,CodigoLoja,Nome,Preco,Quantidade,Vendas
+P01,L01,Peluche Leao,15.5,49,1
+P02,L01,T-Shirt Zoo,20.0,30,0
+P03,L02,Agua 0.5L,1.5,100,0
+P04,L02,Sandes Mista,3.5,40,0

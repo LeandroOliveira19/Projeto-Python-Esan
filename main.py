@@ -16,6 +16,7 @@ class SistemaZoo:
         self.lojas = []
         self.produtos = [] 
         self.reservas = [] 
+        self.conexoes = [] # <--- NOVO: Lista para gerir as conexões e gravar no CSV
         
         # --- NOVOS CONTADORES PARA ESTATÍSTICAS ---
         self.qtd_bilhetes_adulto = 0
@@ -62,11 +63,12 @@ class SistemaZoo:
         for l in self.gestor_db.ler_csv("reservas.csv"):
             self.reservas.append(l)
 
-        # Carregar Grafo
+        # Carregar Grafo e Conexões (ALTERADO)
         for l in self.gestor_db.ler_csv("conexoes.csv"):
+            self.conexoes.append(l) # Guarda na lista para poder gravar depois
             self.grafo.adicionar_conexao(l["CodigoHabitatA"], l["CodigoHabitatB"], l["Distancia"])
 
-        # Carregar Estatísticas Financeiras (NOVO)
+        # Carregar Estatísticas Financeiras
         fin = self.gestor_db.ler_csv("financeiro.csv")
         if fin:
             self.qtd_bilhetes_adulto = int(fin[0].get("Adulto", 0))
@@ -87,7 +89,10 @@ class SistemaZoo:
         # Guardar Produtos (Incluindo Vendas)
         self.gestor_db.guardar_csv("produtos.csv", ["CodigoProduto", "CodigoLoja", "Nome", "Preco", "Quantidade", "Vendas"], [x.to_dict() for x in self.produtos])
         
-        # Guardar Financeiro (NOVO)
+        # Guardar Conexões (NOVO)
+        self.gestor_db.guardar_csv("conexoes.csv", ["CodigoHabitatA", "CodigoHabitatB", "Distancia"], self.conexoes)
+        
+        # Guardar Financeiro
         dados_fin = [{"Adulto": self.qtd_bilhetes_adulto, "Crianca": self.qtd_bilhetes_crianca}]
         self.gestor_db.guardar_csv("financeiro.csv", ["Adulto", "Crianca"], dados_fin)
         
@@ -107,15 +112,11 @@ class SistemaZoo:
                 if val.strip(): return val
                 print("Erro: O campo não pode estar vazio.")
 
-    # --- ALTERAÇÃO: Comparação "Case Insensitive" ---
+    # --- Comparação "Case Insensitive" ---
     def encontrar_por_id(self, lista, id_procurado, atributo_id="cod"):
-        # Normaliza o input (remove espaços e converte para MAIÚSCULAS)
         procura_normalizada = str(id_procurado).strip().upper()
-        
         for obj in lista:
-            # Obtém o valor do objeto e também normaliza para comparar
             valor_obj = str(getattr(obj, atributo_id)).strip().upper()
-            
             if valor_obj == procura_normalizada:
                 return obj
         return None
@@ -128,7 +129,6 @@ class SistemaZoo:
             op = input("Opção: ")
             if op == "1":
                 print("Digite o código da área (-1 para cancelar)")
-                # .upper() força a guardar em maiúsculas
                 cod = self.ler_input("Código Área: ").upper()
                 if cod!="-1":
                     if self.encontrar_por_id(self.areas, cod):
@@ -138,7 +138,7 @@ class SistemaZoo:
                     desc = self.ler_input("Descrição: ")
                     self.areas.append(Area(cod, nome, desc))
                     print("Área criada!")
-                else: print("Adição de área cancelada!")
+                else: print("Cancelado!")
             elif op == "2":
                 for a in self.areas: print(f"[{a.cod}] {a.nome} - {a.descricao}")
             elif op == "3": 
@@ -168,7 +168,7 @@ class SistemaZoo:
             elif op=="0":
                 break
 
-    # --- 4. GESTÃO DE HABITATS ---
+    # --- 4. GESTÃO DE HABITATS (COM GESTÃO DE CONEXÕES) ---
     def menu_habitats(self):
         while True:
             print("\n--- GESTÃO DE HABITATS ---")
@@ -176,33 +176,64 @@ class SistemaZoo:
             op = input("Opção: ")
 
             if op == "1":
-                print("Digite o código do habitat (-1 para cancelar)")
-                cod = self.ler_input("Código Habitat: ").upper() # Força maiúsculas
+                print("Digite o código (-1 para cancelar)")
+                cod = self.ler_input("Código Habitat: ").upper()
                 if cod!="-1":
                     if self.encontrar_por_id(self.habitats, cod):
-                        print("Erro: Código de Habitat já existe.")
+                        print("Erro: Já existe.")
                         return
                     nome = self.ler_input("Nome: ")
-                    tipo = self.ler_input("Tipo (ex: Aquático): ")
+                    tipo = self.ler_input("Tipo: ")
                     area = self.ler_input("Código da Área: ")
 
                     if not self.encontrar_por_id(self.areas, area):
-                        print("ERRO: Essa área não existe! Crie a área primeiro.")
+                        print("ERRO: Área não existe!")
                     else:
                         self.habitats.append(Habitat(cod, nome, tipo, area))
                         print("Habitat criado!")
-                else: print("Adição de habitat cancelada!")
+
+                        # --- ADICIONAR CONEXÕES LOGO APÓS CRIAR ---
+                        print("\n=== Configurar Distâncias ===")
+                        print("Este habitat precisa de estar ligado a outros para aparecer no mapa.")
+                        while True:
+                            resp = input("Deseja conectar a outro habitat agora? (s/n): ").lower()
+                            if resp != 's': break
+                            
+                            print("\nHabitats existentes:")
+                            for h in self.habitats:
+                                if h.cod != cod: print(f"- {h.cod} ({h.nome})")
+                            
+                            dest = input("Código do habitat vizinho: ").upper()
+                            if dest == cod:
+                                print("Não pode conectar a si mesmo.")
+                                continue
+                                
+                            if self.encontrar_por_id(self.habitats, dest):
+                                dist = self.ler_input(f"Distância entre {cod} e {dest} (metros): ", float)
+                                
+                                # Adiciona ao Grafo (para usar já)
+                                self.grafo.adicionar_conexao(cod, dest, dist)
+                                # Adiciona à Lista (para guardar no CSV)
+                                self.conexoes.append({
+                                    "CodigoHabitatA": cod,
+                                    "CodigoHabitatB": dest,
+                                    "Distancia": dist
+                                })
+                                print("Conexão adicionada!")
+                            else:
+                                print("Habitat vizinho não encontrado.")
+
+                else: print("Cancelado!")
 
             elif op == "2":
                 for h in self.habitats: print(f"[{h.cod}] {h.nome} ({h.tipo}) -> Área: {h.area_id}")
 
             elif op == "3":
-                print("Digite o código do habitat (-1 para cancelar)")
                 cod = input("Código a editar: ")
                 if cod != "-1":
                     h = self.encontrar_por_id(self.habitats, cod)
                     if h:
-                        print(f"A editar: {h.nome} (Pressione Enter para manter o atual)")
+                        print(f"A editar: {h.nome}")
                         novo_nome = input(f"Novo Nome ({h.nome}): ")
                         if novo_nome.strip(): h.nome = novo_nome
                         novo_tipo = input(f"Novo Tipo ({h.tipo}): ")
@@ -210,25 +241,28 @@ class SistemaZoo:
                         nova_area = input(f"Nova Área ({h.area_id}): ")
                         if nova_area.strip():
                             if self.encontrar_por_id(self.areas, nova_area):
-                                h.area_id = nova_area.upper() # Guarda em maiúsculas
+                                h.area_id = nova_area.upper()
                                 print("Área atualizada.")
                             else:
-                                print("ERRO: A área indicada não existe! A área manteve-se inalterada.")
-                        print("Habitat editado com sucesso.")
-                    else:
-                        print("Habitat não encontrado.")
-                else: print("Edição de habitat cancelada!")
+                                print("ERRO: Área inexistente.")
+                        print("Sucesso.")
+                    else: print("Não encontrado.")
 
             elif op == "4":
-                print("Digite o código do habitat (-1 para cancelar)")
-                cod = input("Código a remover: ")
+                cod = input("Código a remover: ").upper()
                 if cod != "-1":
                     h = self.encontrar_por_id(self.habitats, cod)
                     if h:
                         self.habitats.remove(h)
-                        print("Habitat removido.")
+                        # Remover também as conexões deste habitat para não quebrar o grafo
+                        self.conexoes = [c for c in self.conexoes if c["CodigoHabitatA"] != cod and c["CodigoHabitatB"] != cod]
+                        # Reconstrói o grafo do zero para garantir integridade
+                        self.grafo = GrafoZoo()
+                        for c in self.conexoes:
+                            self.grafo.adicionar_conexao(c["CodigoHabitatA"], c["CodigoHabitatB"], c["Distancia"])
+                        
+                        print("Habitat e respetivas conexões removidos.")
                     else: print("Não encontrado.")
-                else: print("Remoção de habitat cancelada!")
             elif op=="0":
                 break
 
@@ -245,25 +279,25 @@ class SistemaZoo:
         if op == "1":
             cod = self.ler_input("Código Animal: ").upper()
             if self.encontrar_por_id(self.animais, cod):
-                print("Erro: Já existe um animal com este código.")
+                print("Erro: Já existe.")
                 return
             nome = self.ler_input("Nome Comum: ")
-            cient = input("Nome Científico (opcional): ")
+            cient = input("Nome Científico: ")
             esp = self.ler_input("Espécie: ")
             idade = self.ler_input("Idade: ", int)
             
             hid = self.ler_input("Código Habitat: ")
             if not self.encontrar_por_id(self.habitats, hid):
-                print(f"ERRO CRÍTICO: O Habitat '{hid}' não existe!")
+                print(f"ERRO: Habitat '{hid}' inexistente!")
                 return 
 
             tid = self.ler_input("Código Tratador: ")
             if not self.encontrar_por_id(self.tratadores, tid):
-                print(f"ERRO CRÍTICO: O Tratador '{tid}' não existe!")
+                print(f"ERRO: Tratador '{tid}' inexistente!")
                 return 
             
             self.animais.append(Animal(cod, nome, cient, esp, idade, hid, tid))
-            print("Sucesso: Animal registado corretamente.")
+            print("Animal registado.")
 
         elif op == "2":
             print(f"{'COD':<5} {'NOME':<15} {'ESPÉCIE':<15} {'HABITAT':<10} {'TRATADOR':<10}")
@@ -271,17 +305,17 @@ class SistemaZoo:
                 print(f"{a.cod:<5} {a.nome:<15} {a.especie:<15} {a.habitat_id:<10} {a.tratador_id:<10}")
 
         elif op == "3":
-            termo = input("Pesquisar por: ").lower()
-            resultados = [a for a in self.animais if termo in a.nome.lower() or termo in a.especie.lower() or termo == a.habitat_id.lower()]
+            termo = input("Pesquisar: ").lower()
+            resultados = [a for a in self.animais if termo in a.nome.lower() or termo in a.especie.lower()]
             print(f"Encontrados: {len(resultados)}")
             for a in resultados: print(f"- {a.nome} ({a.especie}) no {a.habitat_id}")
 
         elif op == "4":
-            cod = input("Código animal a remover: ")
+            cod = input("Código a remover: ")
             a = self.encontrar_por_id(self.animais, cod)
             if a: 
                 self.animais.remove(a)
-                print("Animal removido.")
+                print("Removido.")
             else: print("Não encontrado.")
 
     # --- 6. GESTÃO DE STAFF E EVENTOS ---
@@ -302,12 +336,12 @@ class SistemaZoo:
         if op == "1":
             c = self.ler_input("Código: ").upper()
             if self.encontrar_por_id(self.tratadores, c):
-                print("Erro: Código já existe.")
+                print("Erro: Já existe.")
                 return
             n = self.ler_input("Nome: ")
             e = self.ler_input("Especialidade: ")
             self.tratadores.append(Tratador(c, n, e))
-            print("Tratador registado.")
+            print("Registado.")
         elif op == "2":
             for t in self.tratadores: print(f"[{t.cod}] {t.nome} - {t.especialidade}")
         elif op == "3":
@@ -315,7 +349,7 @@ class SistemaZoo:
             t = self.encontrar_por_id(self.tratadores, c)
             if t:
                 t.nome = self.ler_input(f"Novo Nome ({t.nome}): ")
-                t.especialidade = self.ler_input(f"Nova Especialidade ({t.especialidade}): ")
+                t.especialidade = self.ler_input(f"Nova Esp. ({t.especialidade}): ")
                 print("Editado.")
             else: print("Não encontrado.")
         elif op == "4":
@@ -324,7 +358,6 @@ class SistemaZoo:
             if t:
                 self.tratadores.remove(t)
                 print("Removido.")
-            else: print("Não encontrado.")
 
     def submenu_exposicoes(self):
         print("\n-- EXPOSIÇÕES --")
@@ -425,7 +458,6 @@ class SistemaZoo:
             lid = input("Código da Loja (Enter para ver todos): ")
             print(f"{'COD':<5} {'NOME':<20} {'PREÇO':<10} {'QTD':<5} {'LOJA'}")
             for p in self.produtos:
-                # Normaliza para comparar (lid.upper())
                 if not lid or p.loja_id == lid.strip().upper():
                     print(f"{p.cod:<5} {p.nome:<20} {p.preco:<10} {p.quantidade:<5} {p.loja_id}")
 
