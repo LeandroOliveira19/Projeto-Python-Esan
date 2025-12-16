@@ -288,12 +288,12 @@ class SistemaZoo:
             
             hid = self.ler_input("Código Habitat: ")
             if not self.encontrar_por_id(self.habitats, hid):
-                print(f"ERRO: Habitat '{hid}' inexistente!")
+                print(f"ERRO CRÍTICO: O Habitat '{hid}' não existe!")
                 return 
 
             tid = self.ler_input("Código Tratador: ")
             if not self.encontrar_por_id(self.tratadores, tid):
-                print(f"ERRO: Tratador '{tid}' inexistente!")
+                print(f"ERRO CRÍTICO: O Tratador '{tid}' não existe!")
                 return 
             
             self.animais.append(Animal(cod, nome, cient, esp, idade, hid, tid))
@@ -349,7 +349,7 @@ class SistemaZoo:
             t = self.encontrar_por_id(self.tratadores, c)
             if t:
                 t.nome = self.ler_input(f"Novo Nome ({t.nome}): ")
-                t.especialidade = self.ler_input(f"Nova Esp. ({t.especialidade}): ")
+                t.especialidade = self.ler_input(f"Nova Especialidade ({t.especialidade}): ")
                 print("Editado.")
             else: print("Não encontrado.")
         elif op == "4":
@@ -358,6 +358,7 @@ class SistemaZoo:
             if t:
                 self.tratadores.remove(t)
                 print("Removido.")
+            else: print("Não encontrado.")
 
     def submenu_exposicoes(self):
         print("\n-- EXPOSIÇÕES --")
@@ -395,7 +396,7 @@ class SistemaZoo:
                 self.exposicoes.remove(e)
                 print("Removido.")
 
-    # --- 7. LOJAS E PRODUTOS ---
+    # --- 7. LOJAS E PRODUTOS (FUNCIONALIDADE 12) ---
     def menu_lojas(self):
         print("\n--- LOJAS E PRODUTOS ---")
         print("1. Gerir Lojas")
@@ -440,7 +441,7 @@ class SistemaZoo:
         op = input("Opção: ")
 
         if op == "1":
-            lid = input("Código da Loja onde vai adicionar: ")
+            lid = input("Código da Loja: ")
             if not self.encontrar_por_id(self.lojas, lid):
                 print("Erro: Loja não existe.")
                 return
@@ -455,7 +456,7 @@ class SistemaZoo:
             print("Produto adicionado.")
 
         elif op == "2":
-            lid = input("Código da Loja (Enter para ver todos): ")
+            lid = input("Código da Loja (Enter=Todos): ")
             print(f"{'COD':<5} {'NOME':<20} {'PREÇO':<10} {'QTD':<5} {'LOJA'}")
             for p in self.produtos:
                 if not lid or p.loja_id == lid.strip().upper():
@@ -559,7 +560,7 @@ class SistemaZoo:
 
     # --- 9. APLICAÇÃO CLIENTE ---
     def menu_visitante(self):
-        import codigo.dynamic_map
+        import dynamic_map  # <--- IMPORT CORRIGIDO
         while True:
             print("\n=== ÁREA DO VISITANTE ===")
             print("1. Consultar Animais e Habitats")
@@ -571,20 +572,13 @@ class SistemaZoo:
             print("0. Voltar")
             op = input("Opção: ")
 
-            if op == "1":
-                self.menu_cliente_animais_habitats()
-            elif op == "2":
-                self.menu_reservas_exposicoes()
-            elif op == "3":
-                self.menu_bilheteira()
-            elif op == "4":
-                self.menu_cliente_loja() 
-            elif op == "5":
-                self.planear_rota()
-            elif op == "6":
-               codigo.dynamic_map.show_dynamic_map(self.grafo,self.habitats)
-            elif op == "0":
-                break
+            if op == "1": self.menu_cliente_animais_habitats()
+            elif op == "2": self.menu_reservas_exposicoes()
+            elif op == "3": self.menu_bilheteira()
+            elif op == "4": self.menu_cliente_loja() 
+            elif op == "5": self.planear_rota()
+            elif op == "6": dynamic_map.show_dynamic_map(self.grafo, self.habitats) # <--- CHAMADA CORRIGIDA
+            elif op == "0": break
 
     def menu_cliente_animais_habitats(self):
         while True:

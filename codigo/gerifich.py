@@ -3,13 +3,16 @@ import os
 
 class GestorFicheiros:
     def __init__(self, pasta="dados"):
-        # TRUQUE: Descobre a pasta onde este ficheiro (gerifich.py) está guardado
-        diretorio_base = os.path.dirname(os.path.abspath(__file__))
+        # 1. Descobre onde este ficheiro (gerifich.py) está: .../projeto/codigo
+        diretorio_atual = os.path.dirname(os.path.abspath(__file__))
         
-        # Define o caminho completo para a pasta 'dados'
-        self.pasta = os.path.join(diretorio_base, pasta)
+        # 2. Anda um nível para trás para chegar à raiz do projeto: .../projeto
+        diretorio_projeto = os.path.dirname(diretorio_atual)
+        
+        # 3. Define o caminho para a pasta dados: .../projeto/dados
+        self.pasta = os.path.join(diretorio_projeto, pasta)
 
-        # Tenta criar a pasta se não existir
+        # Tenta criar a pasta se não existir (apenas por segurança)
         try:
             os.makedirs(self.pasta, exist_ok=True)
         except:
