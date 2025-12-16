@@ -1,0 +1,76 @@
+WIKI
+
+Esta Wiki descreve como utilizar o Sistema de Gestão do Zoológico, explicando como iniciar o programa e como aceder às suas principais funcionalidades através dos menus disponíveis no terminal.
+
+1.Iniciar o Programa
+Requisitos
+
+Python 3 instalado
+Acesso a um terminal
+Execução
+Abrir um terminal na pasta do projeto
+Executar o comando:
+
+python main.py
+
+
+Após a execução, o menu principal será apresentado.
+
+2. Menu Principal
+
+No menu principal, o utilizador pode escolher entre:
+
+Modo Administrador
+Modo Cliente
+Sair do Programa
+
+A navegação é feita introduzindo o número correspondente à opção pretendida.
+
+2.1.Modo Administrador
+
+O Modo Administrador é utilizado para gerir o funcionamento do zoológico.
+
+Através deste modo, é possível:
+Gerir áreas e habitats do zoo
+Registar e consultar animais e tratadores
+Criar e gerir exposições
+Gerir visitantes e bilhetes
+Gerir lojas e produtos
+Definir conexões e distâncias entre habitats
+
+Todas as operações são realizadas através de menus simples e orientados.
+
+2.2.Modo Cliente
+
+O Modo Cliente é destinado aos visitantes do zoológico.
+
+Neste modo, o utilizador pode:
+Consultar áreas, habitats e animais
+Ver exposições disponíveis
+Comprar bilhetes e reservar exposições
+Consultar lojas e produtos
+Solicitar percursos sugeridos
+Visualizar o mapa dinâmico do zoológico
+
+Este modo permite apenas consultas e ações básicas, sem alterar dados do sistema.
+
+3. Mapa Dinâmico do Zoológico
+
+O sistema disponibiliza um mapa dinâmico interativo que representa graficamente o zoológico.
+
+O mapa permite:
+
+Visualizar todos os habitats disponíveis
+Ver as conexões entre habitats
+Interpretar as distâncias entre diferentes pontos do zoo
+Compreender visualmente os percursos sugeridos pelo sistema
+O mapa é gerado automaticamente com base na estrutura atual do zoológico.
+
+4. Planeamento de rotas
+
+O Sistema realiza uma rota optimal do trajeto entre dois habitats e o percurso pode ser analisado com o apoio do mapa dinâmico
+Esta funcionalidade ajuda o visitante a deslocar-se de forma eficiente dentro do zoológico.
+
+5. Encerramento do Programa
+
+O programa pode ser encerrado a qualquer momento através da opção Sair no menu principal.
