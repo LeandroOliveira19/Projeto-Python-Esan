@@ -7,7 +7,17 @@ Requisitos
 
 Python 3 instalado
 Acesso a um terminal
+
+Instalar as bibliotecas networkx e matplotlib com os seguintes comandos no terminal:
+
+Linux / macOS
+pip3 install networkx matplotlib
+
+Windows
+pip install networkx matplotlib
+
 Execução
+
 Abrir um terminal na pasta do projeto
 Executar o comando:
 
