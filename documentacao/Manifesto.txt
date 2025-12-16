@@ -1,0 +1,131 @@
+Manifesto do Projeto – Sistema de Gestão de Zoo
+
+Visão Geral
+
+Este projeto consiste no desenvolvimento de um Sistema de Gestão de um Zoológico, implementado em Python, com o objetivo de aplicar conceitos de Algoritmos e Programação.
+
+O sistema permite a gestão interna do zoo e a consulta de informações por parte dos visitantes, utilizando menus em terminal e armazenamento persistente em ficheiros.
+
+---
+
+Estrutura Geral do Projeto
+
+O projeto está organizado de forma modular, o que facilita a manutenção e a expansão do sistema.
+
+Descrição das Pastas e Ficheiros
+
+A seguir é apresentada uma descrição detalhada de cada pasta e ficheiro do projeto, explicando não apenas a sua função atual, mas também o seu papel na organização e possível expansão do sistema.
+
+
+
+-- main.py ---------------------
+
+É o ficheiro principal do projeto e o ponto de entrada da aplicação.
+
+Funções principais:
+
+Inicializa a aplicação
+Apresenta os menus de interação ao utilizador
+Separa o sistema em dois modos de utilização: Administrador e Cliente
+Controla o fluxo da aplicação, direcionando o utilizador para as funcionalidades escolhidas
+
+Este ficheiro atua como o centro de controlo do sistema, fazendo a ligação entre os modelos de dados, o armazenamento e as funcionalidades disponíveis.
+
+Por questões de facilidade de leitura de código, foi optada que diversas funções gerais permancecem neste ficheiro.
+
+--------------------------------
+
+-- classes.py -------------------
+
+Contém a definição das classes que representam as entidades do sistema.
+
+Cada classe define a estrutura dos dados usados no projeto. Sendo estas as seguintes:
+
+ Áreas
+ Habitats
+ Animais
+ Tratadores
+ Exposições
+ Visitantes
+ Bilhetes
+ Lojas e Produtos
+ Conexões entre habitats
+
+Este ficheiro permite:
+
+ Organizar os dados de forma clara e estruturada
+ Facilitar a criação, leitura e manipulação das entidades
+ Garantir consistência dos dados em to|do o sistema
+
+Caso o projeto fosse expandido para uma base de dados ou interface gráfica, este ficheiro continuaria a ser a base do modelo de dados.
+
+--------------------------------
+
+-- gerifich.py ------------------
+
+É responsável pela gestão dos dados do sistema, utilizando ficheiros CSV.
+
+Funções principais:
+
+ Ler dados dos ficheiros CSV para a memória do programa
+ Guardar alterações feitas durante a execução
+ Criar e atualizar ficheiros caso não existam
+ Gerar identificadores únicos para novos registos
+
+Este ficheiro garante que os dados não são perdidos ao encerrar o programa e permite que o sistema funcione como uma aplicação real, com informação permanente.
+
+--------------------------------
+
+-- grafo.py ------------------
+
+Responsável pela interpretação das conexões e distâncias entre habitats.
+
+--------------------------------
+
+-- dynamic_map.py ------------------
+
+Responsável pela criação e exibição de um mapa dinâmico do zoo.
+
+--------------------------------
+
+-- Pasta /img ------------------
+
+Guarda uma imagem
+
+--------------------------------
+
+-- girafe.jpeg -----------------
+
+Imagem CC0 de uma girafa. É utilizada como background do mapa dinâmico.
+
+--------------------------------
+
+-- Pasta /dados ----------------
+
+A pasta data contém todos os ficheiros CSV utilizados pelo sistema.
+
+Cada ficheiro CSV funciona como uma tabela, onde:
+
+ Cada linha representa um registo
+ Cada coluna representa um atributo da entidade
+
+Os ficheiros armazenados são os seguintes:
+
+ areas.csv
+ habitats.csv
+ animais.csv
+ tratadores.csv
+ exposicoes.csv
+ visitantes.csv
+ bilhetes.csv
+ reservas.csv
+ lojas.csv
+ produtos.csv
+ conexoes.csv
+
+Esta pasta é essencial para:
+
+ Manter a organização dos dados
+ Facilitar a análise externa (Excel, LibreOffice)
+
+--------------------------------

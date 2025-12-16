@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import time
-import tempfile  # <--- NOVO: Para usar a pasta temporária do Windows
+import tempfile  # <--- Pasta temporária do Windows
 
 def show_dynamic_map(grafo, habitats):
     # 1. Verificar conexões
@@ -63,7 +63,7 @@ def show_dynamic_map(grafo, habitats):
             except:
                 pass
 
-        # 6. GUARDAR NA PASTA TEMPORÁRIA (Solução Definitiva)
+        # 6. GUARDAR NA PASTA TEMPORÁRIA
         try:
             # Gera um nome único
             timestamp = int(time.time())
@@ -90,7 +90,8 @@ def show_dynamic_map(grafo, habitats):
 
         # Get the current axes object
         ax = plt.gca()
-        # --- ADD BACKGROUND IMAGE ---
+
+        # --- ADD BACKGROUND IMAGE
         try:
             # 1. Load the image
             bg_image = plt.imread(image_path)
