@@ -86,7 +86,7 @@ def show_dynamic_map(grafo, habitats):
             plt.close()
     else:
         # background
-        image_path = "codigo/img/girafe.jpeg"
+        image_path = "img/girafe.jpeg"
 
         # Get the current axes object
         ax = plt.gca()
